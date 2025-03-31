@@ -55,7 +55,7 @@ def main():
   dish_size = 145
   
   ### 1. tandem data processing
-  if(False):
+  if(True):
     print("tandem data processing")
     data_place = glob.glob("data_raw/tandem/*")
     
@@ -130,78 +130,78 @@ def main():
     df.reset_index().to_feather("data_fmt/tandem_df.feather")
     print("skipped item: " + str(skip_list))
     
-  
   ### 2. solo data processing
-  print("solo data processing")
-  data_place = glob.glob("data_raw/solo/*")
-  df_dish = pd.read_csv("data_raw/df_dishsize_solo.csv")
-
-  df = pd.DataFrame()
-  skip_list = []  # this is for debug
+  if(False):
+    print("solo data processing")
+    data_place = glob.glob("data_raw/solo/*")
+    df_dish = pd.read_csv("data_raw/df_dishsize_solo.csv")
   
-  for f_name in data_place:
+    df = pd.DataFrame()
+    skip_list = []  # this is for debug
     
-    print(f_name)
-    
-    ## metadata
-    video_name = os.path.basename(f_name.replace(".h5", ""))
-    colony = video_name.split("_")[1]
-    sex    = video_name.split("_")[2]
-    
-    ## load data
-    with h5py.File(f_name, "r") as f:
-      try:
-        locations = f['tracks'][:]
-        node_names = [n.decode() for n in f["node_names"][:]]
-        print("'tracks' exists")
-      except KeyError:
-        print("'tracks' does not exist")
-        skip_list.append(f_name)
-        continue;
-    
-    locations = locations.T
-    total_frame = locations.shape[0]
-
-    # remove tracks with > 1
-    if locations.shape[3] > 1:
-      print("there are too many tracks")
-      locations = locations[:,:,:,0:1]
+    for f_name in data_place:
+      
+      print(f_name)
+      
+      ## metadata
+      video_name = os.path.basename(f_name.replace(".h5", ""))
+      colony = video_name.split("_")[1]
+      sex    = video_name.split("_")[2]
+      
+      ## load data
+      with h5py.File(f_name, "r") as f:
+        try:
+          locations = f['tracks'][:]
+          node_names = [n.decode() for n in f["node_names"][:]]
+          print("'tracks' exists")
+        except KeyError:
+          print("'tracks' does not exist")
+          skip_list.append(f_name)
+          continue;
+      
+      locations = locations.T
+      total_frame = locations.shape[0]
   
-    ## processing locations
-    # data filling
-    locations = fill_missing(locations)
+      # remove tracks with > 1
+      if locations.shape[3] > 1:
+        print("there are too many tracks")
+        locations = locations[:,:,:,0:1]
     
-    # filtering
-    for i_ind in range(locations.shape[3]):
-      for i_coord in range(locations.shape[2]):
-        for i_nodes in range(locations.shape[1]):
-          locations[:, i_nodes, i_coord, i_ind] = scipy.signal.medfilt( locations[:, i_nodes, i_coord, i_ind], 5)
-    
-    # scaling in mm
-    dish_area = df_dish[df_dish['video'] == video_name].drop(columns=['video']).values.flatten()
-    locations[:, :, 0, :] = (locations[:, :, 0, :] - dish_area[0]) / (dish_area[2]-dish_area[0]) * dish_size
-    locations[:, :, 1, :] = (locations[:, :, 1, :] - dish_area[1]) / (dish_area[3]-dish_area[1]) * dish_size
-
-    df_temp = {
-        "frame": list(range(0,locations.shape[0],1)),
-        "Head_x": locations[:, node_names.index('headtip'), 0, 0].round(2),
-        "Head_y": locations[:, node_names.index('headtip'), 1, 0].round(2),
-        "Tip_x": locations[:, node_names.index('abdomentip'), 0, 0].round(2),
-        "Tip_y": locations[:, node_names.index('abdomentip'), 1, 0].round(2),
-        "Center_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
-        "Center_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
-        "video": video_name,
-        "colony": "Copfor" + colony,
-        "sex": sex
-        }
-    df_temp = pd.DataFrame(df_temp)
-    
-    df = pd.concat([df, pd.DataFrame(df_temp)])
+      ## processing locations
+      # data filling
+      locations = fill_missing(locations)
+      
+      # filtering
+      for i_ind in range(locations.shape[3]):
+        for i_coord in range(locations.shape[2]):
+          for i_nodes in range(locations.shape[1]):
+            locations[:, i_nodes, i_coord, i_ind] = scipy.signal.medfilt( locations[:, i_nodes, i_coord, i_ind], 5)
+      
+      # scaling in mm
+      dish_area = df_dish[df_dish['video'] == video_name].drop(columns=['video']).values.flatten()
+      locations[:, :, 0, :] = (locations[:, :, 0, :] - dish_area[0]) / (dish_area[2]-dish_area[0]) * dish_size - dish_size/2
+      locations[:, :, 1, :] = (locations[:, :, 1, :] - dish_area[1]) / (dish_area[3]-dish_area[1]) * dish_size - dish_size/2
   
-  df = df[df["frame"] % 6 == 0]
-  df.reset_index().to_feather("data_fmt/solo_df.feather")
-  print("skipped item: " + str(skip_list))
-  
+      df_temp = {
+          "frame": list(range(0,locations.shape[0],1)),
+          "Head_x": locations[:, node_names.index('headtip'), 0, 0].round(2),
+          "Head_y": locations[:, node_names.index('headtip'), 1, 0].round(2),
+          "Tip_x": locations[:, node_names.index('abdomentip'), 0, 0].round(2),
+          "Tip_y": locations[:, node_names.index('abdomentip'), 1, 0].round(2),
+          "Center_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
+          "Center_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
+          "video": video_name,
+          "colony": "Copfor" + colony,
+          "sex": sex
+          }
+      df_temp = pd.DataFrame(df_temp)
+      
+      df = pd.concat([df, pd.DataFrame(df_temp)])
+    
+    df = df[df["frame"] % 6 == 0]
+    df.reset_index().to_feather("data_fmt/solo_df.feather")
+    print("skipped item: " + str(skip_list))
+    
   return 0
 
 #------------------------------------------------------------------------------#
