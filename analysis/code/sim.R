@@ -9,89 +9,50 @@
   rm(list = ls())
   require(Rcpp)
   
-  library(fitdistrplus)
+  load("data_fmt/solo_param.rda")
+  
   rlaplace <- function(n, location = 0, scale = 1) {
     return(location - scale * sign(runif(n) - 0.5) * log(1 - 2 * abs(runif(n) - 0.5)))
   }
-  dlaplace <- function(x, location = 0, scale = 1) {
-    return(1/(2 * scale) * exp(-abs(x - location) / scale))
-  }
-  plaplace <- function(x, location = 0, scale = 1) {
-    return(0.5 * (1 + sign(x - location) * (1 - exp(-abs(x - location) / scale))))
-  }
-  fit_acceleration_laplace <- fitdist(as.numeric(na.omit(df_plot$f_acc)), "laplace", start = list(location = 0, scale = 1))
-  
-  fit_turn_laplace <- fitdist(as.numeric(na.omit(df_plot$f_turn)), "laplace", start = list(location = 0, scale = 1))
-  plot(density(as.numeric(na.omit(df_plot$f_turn))))
-  points(seq(-1,1,0.01), dlaplace(seq(-1,1,0.01), 0, 0.12835), col =2, type ="l")
 }
 #------------------------------------------------------------------------------#
 
-max_step <- 18000
-angle <- runif(1, 0, 1) * 2 * pi
-loc <- matrix(0, max_step, 2)
-speed <- runif(1, 0, 8)
-
-speed_his <- speed
-next_angle_1 <- as.numeric(rwrappedcauchy(max_step, pi, param$angle_rho_1+0.02) - pi)
-while(sum(abs(next_angle_1) > 0.8)>0){
-  print(sum(abs(next_angle_1) > 0.8))
-  next_angle_1[abs(next_angle_1) > 0.8] <- 
-    as.numeric(rwrappedcauchy(length(next_angle_1[abs(next_angle_1) > 0.8]), pi, param$angle_rho_1+0.02) - pi)
-}
-next_angle_2 <- as.numeric(rwrappedcauchy(max_step, pi, param$angle_rho_2+0.02) - pi)
-while(sum(abs(next_angle_2) > 0.8)>0){
-  next_angle_2[abs(next_angle_2) > 0.8] <- 
-    as.numeric(rwrappedcauchy(length(next_angle_2[abs(next_angle_2) > 0.8]), pi, param$angle_rho_2+0.02) - pi)
-}
-next_angle_3 <- as.numeric(rwrappedcauchy(max_step, pi, param$angle_rho_3+0.02) - pi)
-while(sum(abs(next_angle_3) > 0.8)>0){
-  next_angle_3[abs(next_angle_3) > 0.8] <- 
-    as.numeric(rwrappedcauchy(length(next_angle_3[abs(next_angle_3) > 0.8]), pi, param$angle_rho_3+0.02) - pi)
-}
-
-speed_his <- speed
-
-for(i in 2:max_step){
-  speed <- speed + speed * param$slope + param$intercept + rlaplace(1, 0, fit_acceleration_laplace$estimate[2])
-  speed <- pmax(speed, 0)
-  speed_his <- c(speed_his, speed)
+# one trajectory
+{
+  max_step <- 18000
+  angle <- runif(1, 0, 1) * 2 * pi
+  loc <- matrix(0, max_step, 2)
+  speed <- runif(1, 0, 8)
   
-  #next_angle <- rwrappedcauchy(1, pi, 0.925) - pi
-  next_angle <- rlaplace(1, 0, 0.12835)
-  #if(speed <= 1){
-  #  next_angle <- next_angle_1[i]
-  #} else if (speed <= 3){
-  #  next_angle <- next_angle_2[i]
-  #} else{
-  #  next_angle <- next_angle_3[i]
-  #}
-  next_angle <- pmin(next_angle, 1)
-  next_angle <- pmax(next_angle, -1)
-  angle <- angle + next_angle
+  speed_his <- speed
+  next_angle <- rlaplace(18000, location = 0, scale = solo_param$turn_scale)
   
-  loc[i,] <- loc[i-1,] + c(cos(angle), sin(angle))*speed
-  #plot(loc[i,1], loc[i,2], xlim=c(-200,200), ylim=c(-200,200))
-  #Sys.sleep(0.1)
+  for(i in 2:max_step){
+    speed <- speed + speed * solo_param$acc_slope + solo_param$acc_inter + rlaplace(1, 0, solo_param$acc_scale)
+    speed <- pmax(speed, 0)
+    speed_his <- c(speed_his, speed)
+    
+    angle <- angle + next_angle[i]
+    
+    loc[i,] <- loc[i-1,] + c(cos(angle), sin(angle)) * speed
+  }
+  
+  df <- data.frame(frame = 1:max_step, x = loc[,1], y = loc[,2], speed_his)
+  p1 <- ggplot(df, aes(x = x, y = y, color = speed_his)) +
+    geom_path()+
+    scale_color_gradient(low = "blue", high = "red") +
+    theme_minimal() +
+    labs(color = "Value")+
+    coord_fixed()
+  
+  p2 <- ggplot(df, aes(x = log10(frame), y = log10(x^2 + y^2))) +
+    geom_point() +
+    geom_abline(slope = 1, intercept = 1)+
+    geom_abline(slope = 2, intercept = 1)+
+    theme_classic()
+  
+  print(p1|p2)
 }
-
-df <- data.frame(frame = 1:max_step, x = loc[,1], y = loc[,2], speed_his)
-ggplot(df, aes(x = x, y = y, color = speed_his)) +
-  geom_path()+
-  scale_color_gradient(low = "blue", high = "red") +
-  theme_minimal() +
-  labs(color = "Value")+
-  coord_fixed()
-
-ggplot(df, aes(x = log10(frame), y = log10(x^2 + y^2))) +
-  geom_point() +
-  geom_abline(slope = 1, intercept = 1)+
-  geom_abline(slope = 2, intercept = 1)
-
-sum(speed_his)/1000
-
-
-df_plot
 
 #------------------------------------------------------------------------------#
 # Simulations

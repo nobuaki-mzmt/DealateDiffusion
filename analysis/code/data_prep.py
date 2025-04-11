@@ -53,9 +53,12 @@ def fill_missing(Y, kind="linear"):
 #------------------------------------------------------------------------------#
 def main():
   dish_size = 145
-  
+  window = 5
+  weights = np.ones(window) / window
+  pad_width = (window - 1) // 2
+
   ### 1. tandem data processing
-  if(True):
+  if(False):
     print("tandem data processing")
     data_place = glob.glob("data_raw/tandem/*")
     
@@ -99,7 +102,8 @@ def main():
         for i_coord in range(locations.shape[2]):
           for i_nodes in range(locations.shape[1]):
             locations[:, i_nodes, i_coord, i_ind] = scipy.signal.medfilt( locations[:, i_nodes, i_coord, i_ind], 5)
-      
+            locations[:, i_nodes, i_coord, i_ind] = np.convolve( np.pad(locations[:, i_nodes, i_coord, i_ind], pad_width, mode='edge'), weights, mode='valid')
+            
       # scaling in mm (1200 pixels = dish_size)
       locations[:, :, :, :] = locations[:, :, :, :] / 1200 * dish_size
   
@@ -114,10 +118,15 @@ def main():
           "fTip_y": locations[:, node_names.index('abdomentip'), 1, 0].round(2),
           "mTip_x": locations[:, node_names.index('abdomentip'), 0, 1].round(2),
           "mTip_y": locations[:, node_names.index('abdomentip'), 1, 1].round(2),
-          "fCenter_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
-          "fCenter_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
-          "mCenter_x": locations[:, node_names.index('abdomenfront'), 0, 1].round(2),
-          "mCenter_y": locations[:, node_names.index('abdomenfront'), 1, 1].round(2),
+          #"fCenter_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
+          #"fCenter_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
+          #"mCenter_x": locations[:, node_names.index('abdomenfront'), 0, 1].round(2),
+          #"mCenter_y": locations[:, node_names.index('abdomenfront'), 1, 1].round(2),
+          "fCenter_x": locations[:, node_names.index('headtip'), 0, 0].round(2) + (locations[:, node_names.index('headtip'), 0, 0].round(2) - locations[:, node_names.index('abdomentip'), 0, 0].round(2))/2,
+          "fCenter_y": locations[:, node_names.index('headtip'), 1, 0].round(2) + (locations[:, node_names.index('headtip'), 1, 0].round(2) - locations[:, node_names.index('abdomentip'), 1, 0].round(2))/2,
+          "mCenter_x": locations[:, node_names.index('headtip'), 0, 1].round(2) + (locations[:, node_names.index('headtip'), 0, 1].round(2) - locations[:, node_names.index('abdomentip'), 0, 1].round(2))/2,
+          "mCenter_y": locations[:, node_names.index('headtip'), 1, 1].round(2) + (locations[:, node_names.index('headtip'), 1, 1].round(2) - locations[:, node_names.index('abdomentip'), 1, 1].round(2))/2,
+          
           "video": pair_name,
           "species": species,
           "colony": species + colony
@@ -131,7 +140,7 @@ def main():
     print("skipped item: " + str(skip_list))
     
   ### 2. solo data processing
-  if(False):
+  if(True):
     print("solo data processing")
     data_place = glob.glob("data_raw/solo/*")
     df_dish = pd.read_csv("data_raw/df_dishsize_solo.csv")
@@ -176,6 +185,9 @@ def main():
         for i_coord in range(locations.shape[2]):
           for i_nodes in range(locations.shape[1]):
             locations[:, i_nodes, i_coord, i_ind] = scipy.signal.medfilt( locations[:, i_nodes, i_coord, i_ind], 5)
+            #print(locations[0:10, i_nodes, i_coord, i_ind])
+            locations[:, i_nodes, i_coord, i_ind] = np.convolve( np.pad(locations[:, i_nodes, i_coord, i_ind], pad_width, mode='edge'), weights, mode='valid')
+            #print(locations[0:10, i_nodes, i_coord, i_ind])
       
       # scaling in mm
       dish_area = df_dish[df_dish['video'] == video_name].drop(columns=['video']).values.flatten()
@@ -188,8 +200,10 @@ def main():
           "Head_y": locations[:, node_names.index('headtip'), 1, 0].round(2),
           "Tip_x": locations[:, node_names.index('abdomentip'), 0, 0].round(2),
           "Tip_y": locations[:, node_names.index('abdomentip'), 1, 0].round(2),
-          "Center_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
-          "Center_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
+          #"Center_x": locations[:, node_names.index('abdomenfront'), 0, 0].round(2),
+          #"Center_y": locations[:, node_names.index('abdomenfront'), 1, 0].round(2),
+          "Center_x": locations[:, node_names.index('headtip'), 0, 0].round(2) + (locations[:, node_names.index('headtip'), 0, 0].round(2) - locations[:, node_names.index('abdomentip'), 0, 0].round(2))/2,
+          "Center_y": locations[:, node_names.index('headtip'), 1, 0].round(2) + (locations[:, node_names.index('headtip'), 1, 0].round(2) - locations[:, node_names.index('abdomentip'), 1, 0].round(2))/2,
           "video": video_name,
           "colony": "Copfor" + colony,
           "sex": sex
@@ -198,7 +212,7 @@ def main():
       
       df = pd.concat([df, pd.DataFrame(df_temp)])
     
-    df = df[df["frame"] % 6 == 0]
+    df = df[df["frame"] % 6 == 0] # down sample to 5FPS (4.995 FPS)
     df.reset_index().to_feather("data_fmt/solo_df.feather")
     print("skipped item: " + str(skip_list))
     
