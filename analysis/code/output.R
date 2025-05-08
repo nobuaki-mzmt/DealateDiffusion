@@ -56,21 +56,9 @@
                 sd_acc = sd((acc), na.rm=T), 
                 treat = "solo",
                 .groups = "drop")
-    
-    load("data_fmt/df_antam.rda")
-    df_antam <- df
-    
-    df_summary3 <- df_antam %>%
-      group_by(x = round(step, 1)) %>%
-      summarize(mean_turn = mean((turn), na.rm=T), 
-                sd_turn = sd((turn), na.rm=T), 
-                mean_acc = mean((acc), na.rm=T), 
-                sd_acc = sd((acc), na.rm=T), 
-                treat = "antam_solo",
-                .groups = "drop")
-    
-    df_summary <- rbind(df_summary1, df_summary2, df_summary3)
-    rm(df_summary1, df_summary2, df_summary3)
+        
+    df_summary <- rbind(df_summary1, df_summary2)
+    rm(df_summary1, df_summary2)
   }
 }
 #------------------------------------------------------------------------------#
@@ -173,11 +161,6 @@
       ggsave(filename = "output/solo_acc.pdf", 
              device = cairo_pdf, family = "Arial", width = 5, height = 4)
       
-      if(F){
-        df_antam$colony <- "Cf150704"
-        df_antam$video <- df_antam$ind
-        acc_plot(df_antam, subset(df_summary, treat == "antam_solo"), ANTAM = TRUE)
-      }
     }
     
     # stat
@@ -423,18 +406,6 @@
     ggsave("output/tandem_trajectories_diffusion.pdf", 
            device = cairo_pdf, family = "Arial", width = 5, height = 3.5)
     
-    ggplot(dfMSD_ANTAM, aes(x = x/1000, y = y/1000, group = ind)) +
-      geom_path()+
-      geom_point(data = subset(dfMSD_ANTAM, time == 899), 
-                 col = viridis(3)[2], alpha = 1, size = 1) +
-      geom_point(data = subset(dfMSD_ANTAM, time == 1798.2), 
-                 col = viridis(3)[1], alpha = 1, size = 1) +
-      theme_classic() +
-      theme(aspect.ratio = 2/3, legend.position = c(0.8,0.2)) +
-      labs(x = "X (m)", y = "Y (m)") +
-      coord_cartesian(xlim = c(-7.5, 7.5), ylim = c(-5, 5))
-    ggsave("output/antam_trajectories_diffusion.pdf", 
-           device = cairo_pdf, family = "Arial", width = 5, height = 3.5)
   }
   
   # MSD
@@ -484,25 +455,7 @@
            device = cairo_pdf, family = "Arial", width = 3.5, height = 3.5)
     
     
-    # ANMTA
-    df_msd_fit <- subset(dfMSD_ANTAM, time %in% msd_fit_ref)
-    r <- lmer(log10(msd) ~ log10(time) + (log10(time)|ind), data = df_msd_fit)
     
-    ggplot(dfMSD_ANTAM, aes(x = time, y = msd))+
-      geom_path(aes(group = ind), alpha = .4) +
-      scale_color_viridis(discrete = T, end = .5, option = "D") +
-      scale_x_log10(breaks = c(1, 10, 100, 1000)) +
-      scale_y_log10(breaks = c(100, 10000, 1000000, 100000000), labels = c("10^2", "10^4", "10^6", "10^8")) +
-      #coord_fixed() +
-      geom_abline(slope = 1, intercept = summary(r)$coefficient[1], col = 1, linetype = 2)+
-      geom_abline(slope = 2, intercept = summary(r)$coefficient[1], col = 1, linetype = 2) +
-      geom_abline(slope = summary(r)$coefficient[2], intercept = summary(r)$coefficient[1], 
-                  col = "firebrick", linewidth = 1) +
-      theme_classic() +
-      theme(aspect.ratio = 1, legend.position = c(0.8,0.2)) +
-      labs(x = "Tau (sec)", y = "MSD (m2)")
-    ggsave("output/msd_antam.pdf", 
-           device = cairo_pdf, family = "Arial", width = 3.5, height = 3.5)
   }
   
   # distribution
@@ -541,25 +494,6 @@
                                  treat = "tandem",
                                  colony = df_temp$colony[1],
                                  video = df_temp$video[1]
-                               )
-      )
-    }
-    for(i_v in unique(dfMSD_ANTAM$ind)){
-      df_temp <- subset(dfMSD_ANTAM, ind == i_v)
-      df_temp$time <- df_temp$time - df_temp$time[1]
-      df_temp$x <- df_temp$x - df_temp$x[1]
-      df_temp$y <- df_temp$y - df_temp$y[1]
-      df_temp <- subset(df_temp, time %in% c(899, 1798.2))
-      time_point = c(15,30)
-      if(dim(df_temp)[1] == 0){next}  
-      if(dim(df_temp)[1] == 1){time_point = 15}
-      df_termite_dist <- rbind(df_termite_dist, 
-                               data.frame(
-                                 time_point,
-                                 distance = sqrt(df_temp$x^2 + df_temp$y^2),
-                                 treat = "antam",
-                                 colony = "antam",
-                                 video = df_temp$ind[1]
                                )
       )
     }

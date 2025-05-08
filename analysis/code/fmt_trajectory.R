@@ -509,84 +509,6 @@
  #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-# preprocess ANTAM data
-#------------------------------------------------------------------------------#
-{
-  f.namesplace <- list.files("ANTAM/data_raw", pattern=".csv",full.names=T)
-  f.names <- list.files("ANTAM/data_raw", pattern=".csv",full.names=F)
-  
-  df <- NULL
-  for(i_files in 1:length(f.namesplace)){
-    print(paste0(i_files, "/", length(f.names), " ", f.names[i_files]))
-    
-    # prep data
-    d <- data.frame(fread(f.namesplace[i_files], header=F))[,c(4,1,2)]
-    diff(plot(d[,1]))
-    
-    colnames(d) = c("time", "x", "y")
-    
-    #print(ggplot(d, aes(x,y))+geom_path())
-  
-    
-    sex <- str_split(f.names[i_files], "_")[[1]][4]
-    ind <- str_remove(f.names[i_files], ".csv")
-    
-    d[,2:3] <- d[,2:3] * 0.023725 # scale
-    d <- rbind(c(0,0,0), d)
-    
-    # smoothing
-    d$x = runmed(d$x, 5)
-    d$y = runmed(d$y, 5)
-    
-    # interpolate
-    time = seq(0, 1800, 0.2)
-    x = approx(d$time, d$x, xout=time, method = "linear")$y
-    y = approx(d$time, d$y, xout=time, method = "linear")$y
-    
-    #
-    step         <- sqrt( diff(x)^2 + diff(y)^2)
-    traveled_dis <- cumsum(step)
-    turn         <- atan2(diff(y), diff(x))
-    sqrdispl     <- x^2 + y^2
-    
-    df_temp <- data.frame(
-      time, x, y,
-      step = c(NA, step), 
-      acc  = c(NA, diff(step), NA),
-      turn = c(NA, turn),  
-      traveled_dis = c(0, traveled_dis),
-      sqrdispl, sex, ind
-    )
-    df <- rbind(df, df_temp)
-    
-    # plot trajectories
-    x_range <- range(df_temp$x)
-    y_range <- range(df_temp$y)
-    range_size <- max(diff(x_range), diff(y_range))
-    center_xy <- c(mean(x_range), mean(y_range))
-    x_limits <- c(center_xy[1] - range_size / 2, center_xy[1] + range_size / 2)
-    y_limits <- c(center_xy[2] - range_size / 2, center_xy[2] + range_size / 2)
-    
-    ggplot(df_temp, aes(x = x, y = y)) + 
-      geom_path(alpha = 0.5, linewidth = 0.25) +
-      geom_point(data = data.frame(x = 0, y = 0), aes(x,y), col = 2, alpha = 0.5) +
-      scale_x_continuous(limits = x_limits) +
-      scale_y_continuous(limits = y_limits) +
-      coord_fixed() +
-      xlab("x (mm)") +
-      ylab(NULL) +
-      theme_classic() +
-      theme(aspect.ratio = 1, legend.position = "none") +
-      ggtitle(str_remove(ind, "mouselog_"))
-    ggsave(width = 3, height = 3,
-           filename = paste0("output/trajectories/antam_", str_remove(ind, "mouselog_"), ".png"))
-  }
-  
-  save(df, file = "data_fmt/df_antam.rda")
-}
-#------------------------------------------------------------------------------#
-
-#------------------------------------------------------------------------------#
 # plot individual speed development
 #------------------------------------------------------------------------------#
 {
@@ -609,21 +531,6 @@
   for(i_v in unique(df$video)){
     df_temp <- subset(df, video == i_v)
     p1 <- ggplot(df_temp, aes(x = frame)) +
-      geom_hline(yintercept = 0, linetype = 2) +
-      geom_path(aes(y = step), alpha = 0.4) + 
-      geom_path(aes(y = acc), alpha = 0.4, col = 2) +
-      geom_path(aes(y = turn), alpha = 0.4, col = 3) +
-      theme_classic() +
-      coord_cartesian(ylim = c(-5,10)) +
-      ylab("Variable (mm or rad)") +
-      ggtitle(i_v)
-    ggsave(paste0("output/kinetics/", i_v, ".png"), plot = p1, width = 4, height = 3)
-  }
-  
-  load("data_fmt/df_antam.rda")
-  for(i_v in unique(df$ind)){
-    df_temp <- subset(df, ind == i_v)
-    p1 <- ggplot(df_temp, aes(x = time)) +
       geom_hline(yintercept = 0, linetype = 2) +
       geom_path(aes(y = step), alpha = 0.4) + 
       geom_path(aes(y = acc), alpha = 0.4, col = 2) +
@@ -683,15 +590,5 @@
   df_msd$time <- df_msd$frame/30
   dfMSD_tandem <- df_msd
   
-  load("data_fmt/df_antam.rda")
-  df$msd <- NA
-  for(i_t in unique(df$ind)){
-    #i_t <- unique(df$ind)[1]
-    df_temp <- subset(df, ind == i_t)
-    msd <- computeMSD(df_temp$x, df_temp$y, dim(df_temp)[1]-1)
-    df[df$ind == i_t,]$msd <- c(NA, msd)
-  }
-  dfMSD_ANTAM <- df
-  
-  save(dfMSD_tandem, dfMSD_solo, dfMSD_ANTAM, file = "data_fmt/df_msd.rda")
+  save(dfMSD_tandem, dfMSD_solo, file = "data_fmt/df_msd.rda")
 }
