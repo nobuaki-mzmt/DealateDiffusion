@@ -61,7 +61,16 @@ remotes::install_version("dplyr", version = "1.1.4")
 ```
 
 ### Python Environment
-Python 3.11.4 | sys, os, glob, math, h5py 3.13.0, numpy 1.25.0, pandas 2.2.3, scipy 1.15.2, feather 0.4.1, PIL 11.2.0
+Python 3.11.4
+```bash
+pip install \
+  h5py==3.13.0 \
+  numpy==1.25.0 \
+  pandas==2.2.3 \
+  scipy==1.15.2 \
+  feather-format==0.4.1 \
+  pillow==11.2.0
+```
 
 ## Citation
 TBA
