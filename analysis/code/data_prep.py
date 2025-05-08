@@ -132,10 +132,29 @@ def main():
           "colony": species + colony
         }
       df_temp = pd.DataFrame(df_temp)
-      
-      df = pd.concat([df, pd.DataFrame(df_temp)])
+      df_temp['group'] = df_temp['frame'] // 6
+      downsampled_df_temp = df_temp.groupby('group').agg({
+        'frame': 'first',
+        'fHead_x': 'mean',
+        'fHead_y': 'mean',
+        'mHead_x': 'mean',
+        'mHead_y': 'mean',
+        'fTip_x': 'mean',
+        'fTip_y': 'mean',
+        'mTip_x': 'mean',
+        'mTip_y': 'mean',
+        'fCenter_x': 'mean',
+        'fCenter_y': 'mean',
+        'mCenter_x': 'mean',
+        'mCenter_y': 'mean',
+        "video": 'first',
+        "species": 'first',
+        "colony": 'first'
+        }).reset_index(drop=True)
+      df = pd.concat([df, pd.DataFrame(downsampled_df_temp)])
     
-    df = df[df["frame"] % 6 == 0]
+    #df = df[df["frame"] % 6 == 0]
+    
     df.reset_index().to_feather("data_fmt/tandem_df.feather")
     print("skipped item: " + str(skip_list))
     
@@ -209,10 +228,25 @@ def main():
           "sex": sex
           }
       df_temp = pd.DataFrame(df_temp)
+      df_temp['group'] = df_temp['frame'] // 6
+      downsampled_df_temp = df_temp.groupby('group').agg({
+        'frame': 'first',
+        'Head_x': 'mean',
+        'Head_y': 'mean',
+        'Tip_x': 'mean',
+        'Tip_y': 'mean',
+        'Center_x': 'mean',
+        'Center_y': 'mean',
+        "video": 'first',
+        "colony": 'first',
+        "sex": 'first'
+        }).reset_index(drop=True)
       
-      df = pd.concat([df, pd.DataFrame(df_temp)])
+      
+      df = pd.concat([df, pd.DataFrame(downsampled_df_temp)])
     
-    df = df[df["frame"] % 6 == 0] # down sample to 5FPS (4.995 FPS)
+    #df = df[df["frame"] % 6 == 0] # down sample to 5FPS (4.995 FPS)
+    
     df.reset_index().to_feather("data_fmt/solo_df.feather")
     print("skipped item: " + str(skip_list))
     
