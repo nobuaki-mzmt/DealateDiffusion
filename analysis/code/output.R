@@ -215,11 +215,27 @@
     {
       turn_vals <- as.numeric(na.omit(df_solo$turn))
       fit_turn_laplace <- fitdist(turn_vals, "laplace", start = list(location = 0, scale = 1))
-      fit_turn_laplace$loglik
+      loglik_laplace <- fit_turn_laplace$loglik
+      
+      k_laplace <- 2  # location + scale
+      AIC_laplace <- 2*k_laplace - 2*loglik_laplace
+      AIC_laplace
       
       mle_wrpcauchy <- mle.wrappedcauchy(turn_vals)
       loglik_wrappedcauchy <- sum(log(dwrappedcauchy(turn_vals, as.numeric(mle_wrpcauchy$mu), mle_wrpcauchy$rho)))
-      loglik_wrappedcauchy
+
+      k_wrappedcauchy <- 2  # mu + rho
+      AIC_wrappedcauchy <- 2*k_wrappedcauchy - 2*loglik_wrappedcauchy
+      AIC_wrappedcauchy
+      
+      mle_vonmises <- mle.vonmises(turn_vals)
+      loglik_vonmises <- sum(log(dvonmises(turn_vals, as.numeric(mle_vonmises$mu), mle_vonmises$kappa)))
+      
+      k_vonmises <- 2  # mu + rho
+      AIC_vonmises <- 2*k_vonmises - 2*loglik_vonmises
+      AIC_vonmises
+      
+      
       
       df_fit <- data.frame(x= seq(-1,1,0.01),
                  y = dlaplace(seq(-1,1,0.01), fit_turn_laplace$estimate[1], fit_turn_laplace$estimate[2]))
