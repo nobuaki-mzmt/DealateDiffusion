@@ -8,11 +8,10 @@ This repository provides access to the data and source code used for the manuscr
 **Author:**  
 **Nobuaki Mizumoto**  
 Department of Entomology & Plant Pathology, Auburn University, Auburn, AL, 36849, USA<br>
-**Paper DOI:** [TBA](XXX)
+**Paper DOI:** [10.1007/s10340-026-02023-3](https://doi.org/10.1007/s10340-026-02023-3), in Journal of Pest Science
 
 This study reanalyzed the videos of termite mate searching behavior published in [Mizumoto and Dobata 2019](https://doi.org/10.1126/sciadv.aau6108), using the deep-learning posture tracking software, [SLEAP](https://sleap.ai). The analyis unwrapped the movement trajectories in a petri-dish arena to the open space, to compare the dispersal ability of termite mate searchers and nest searchers. Then, using the movement paramters, I developed a movement simulation to investigate the effect of density and light attraction on termite mating encounters.  
 This repository includes raw tracking data and the Python, R, and C++ scripts.  
-The models and labels are available at TBA.
 
 ## Repository Structure
 
@@ -74,7 +73,7 @@ pip install \
 
 ## Citation
 TBA
-@article{mizumoto2025, title={Evaluating mate encounter and walking dispersal dynamics of termites using posture tracking and behavioral simulation}, author={Mizumoto, Nobuaki}, journal={TBA}, year={2025}, doi={DOI} }
+@article{mizumoto2025, title={Evaluating mate encounter and walking dispersal dynamics of termites using posture tracking and behavioral simulation}, author={Mizumoto, Nobuaki}, journal={Journal of Pest Science}, year={2025}, doi={10.1007/s10340-026-02023-3} }
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
